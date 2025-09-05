@@ -203,6 +203,8 @@
       }
       current=best; if(!hasOwn(times,current)) times[current]=0;
       smokeLabel.textContent='🔥 Самая красивая девушка на костре - '+current;
+      smokeAngle = bestAngle; // угол дыма совпадает с выбранным именем
+
     }
 
     function updateEveningAward(){
@@ -250,7 +252,7 @@
     function onReset(ev){
       if(ev && ev.preventDefault) ev.preventDefault();
       running=false; flame.style.display='none'; if(tickTimer){clearTimeout(tickTimer);tickTimer=null;} stopEngine();
-      current=null; smokeLabel.textContent='🔥 Самая красивая девушка на костре пока не выбрана'; times={}; renderNames();
+      current=null; smokeLabel.textContent='🔥 Самая красивая девушка на костре - Нияз'; times={}; renderNames();
       eveningAward.textContent='🏆 Самая красивая девушка вечера: —'; hideTooltip();
     }
 
