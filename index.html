@@ -41,7 +41,34 @@
     .tooltip{position:fixed; left:0; top:0; transform:translate(-50%,-120%) scale(.96); background:rgba(15,20,32,.96); padding:6px 10px; border-radius:8px; font-size:12px; color:#e5e7eb; border:1px solid #2e3a51; box-shadow:0 6px 18px rgba(0,0,0,.35); pointer-events:none; opacity:0; transition:opacity .12s ease, transform .12s ease; z-index:9999;}
     .tooltip.show{ opacity:1; transform:translate(-50%,-120%) scale(1); }
     .tooltip::after{ content:""; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); border:6px solid transparent; border-top-color:#2e3a51; }
-  </style>
+
+    /* 📱 адаптив для телефонов */
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .scene { width: 100%; height: auto; min-height: 420px; aspect-ratio: auto; }
+    }
+  
+@media (max-width: 768px) {
+  .fire-wrap {
+    width: 120px; /* smaller fire for mobile */
+  }
+  .flame {
+    width: 100px;
+    height: 120px;
+  }
+  .f1 { width: 90px; height: 110px; }
+  .f2 { width: 70px; height: 90px; }
+  .f3 { width: 50px; height: 70px; }
+}
+
+
+@media (max-width: 768px) {
+  .names-circle {
+    transform: scale(1.2);
+  }
+}
+
+</style>
 </head>
 <body>
   <div class="container">
@@ -73,6 +100,7 @@
   <script>
   (function(){
     "use strict";
+    // --- DOM
     var namesInput=document.getElementById('namesInput');
     var namesCircle=document.getElementById('namesCircle');
     var smokeLabel=document.getElementById('smokeLabel');
@@ -85,11 +113,13 @@
     var tooltip=document.getElementById('tooltip');
     var flame=document.getElementById('flame');
 
+    // --- State
     var names=[]; var current=null; var running=false;
     var smokeAngle=-Math.PI/2; var times={}; var lastUpdate=Date.now();
     var tickTimer=null; var engineTimer=null; var uiTimer=null;
     var hoveredName=null; var tooltipTimer=null; var particles=[];
 
+    // --- Helpers
     function pad2(n){ n=Math.floor(n); return (n<10?'0':'')+n; }
     function hasOwn(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
 
@@ -104,6 +134,7 @@
         ctx.setTransform(dpr,0,0,dpr,0,0);
       }
     }
+
     function observeScene(){
       if (window.ResizeObserver){
         try{
@@ -118,10 +149,18 @@
         window.addEventListener('orientationchange', function(){ setTimeout(sizeSceneToCanvas, 60); }, false);
       }
     }
+
     function getCenter(){ return {x:scene.clientWidth/2, y:scene.clientHeight*0.55}; }
     function getRingRadius(){ return Math.min(scene.clientWidth,scene.clientHeight)*0.36; }
-    function formatTime(t){ if(t>=60){ var m=Math.floor(t/60); var s=Math.floor(t%60); return m+':'+pad2(s); } return t.toFixed(1)+' сек'; }
-    function accumulatedTime(name){ var t=times[name]||0; if(name===current&&running){t+=(Date.now()-lastUpdate)/1000;} return t; }
+
+    function formatTime(t){
+      if(t>=60){ var m=Math.floor(t/60); var s=Math.floor(t%60); return m+':'+pad2(s); }
+      return t.toFixed(1)+' сек';
+    }
+    function accumulatedTime(name){
+      var t=times[name]||0; if(name===current&&running){t+=(Date.now()-lastUpdate)/1000;} return t;
+    }
+
     function clearNode(node){ while(node.firstChild){ node.removeChild(node.firstChild);} }
 
     function renderNames(){
@@ -154,31 +193,18 @@
       renderNames();
     }
 
-    // 🔥 изменённая функция
     function chooseCurrentByAngle(){
-      if(!names.length){
-        current=null;
-        smokeLabel.textContent='🔥 Самая красивая девушка на костре пока не выбрана';
-        return;
+      if(!names.length){ current=null; smokeLabel.textContent='🔥 Самая красивая девушка на костре пока не выбрана'; return; }
+      var best=null, bestDiff=Infinity, n=names.length;
+      for(var i=0;i<n;i++){
+        var angle=(i/n)*Math.PI*2-Math.PI/2;
+        var diff=Math.abs(Math.atan2(Math.sin(angle-smokeAngle),Math.cos(angle-smokeAngle)));
+        if(diff<bestDiff){ bestDiff=diff; best=names[i]; }
       }
-      var niazIndex = names.findIndex(n => n.toLowerCase() === "нияз");
-      if(niazIndex >= 0){
-        current = names[niazIndex];
-        if(!hasOwn(times,current)) times[current]=0;
-        smokeLabel.textContent='🔥 Самая красивая девушка на костре - '+current;
-        var angle=(niazIndex/names.length)*Math.PI*2-Math.PI/2;
-        smokeAngle = angle;
-      }else{
-        var best=null, bestDiff=Infinity, n=names.length, bestAngle=0;
-        for(var i=0;i<n;i++){
-          var angle=(i/n)*Math.PI*2-Math.PI/2;
-          var diff=Math.abs(Math.atan2(Math.sin(angle-smokeAngle),Math.cos(angle-smokeAngle)));
-          if(diff<bestDiff){ bestDiff=diff; best=names[i]; bestAngle=angle; }
-        }
-        current=best; if(!hasOwn(times,current)) times[current]=0;
-        smokeLabel.textContent='🔥 Самая красивая девушка на костре - '+current;
-        smokeAngle = bestAngle;
-      }
+      current=best; if(!hasOwn(times,current)) times[current]=0;
+      smokeLabel.textContent='🔥 Самая красивая девушка на костре - '+current;
+      smokeAngle = bestAngle; // угол дыма совпадает с выбранным именем
+
     }
 
     function updateEveningAward(){
@@ -206,17 +232,10 @@
     }
     function stopEngine(){ if(engineTimer){clearInterval(engineTimer);engineTimer=null;} if(uiTimer){clearInterval(uiTimer);uiTimer=null;} }
 
-    // 🔥 изменённая функция
     function scheduleNextAngle(){
       if(!running) return;
-      var niazIndex = names.findIndex(n => n.toLowerCase() === "нияз");
-      if(niazIndex >= 0){
-        chooseCurrentByAngle();
-        tickTimer=setTimeout(scheduleNextAngle,30000);
-      }else{
-        var delay=15000+Math.random()*30000;
-        tickTimer=setTimeout(function(){ smokeAngle=Math.random()*Math.PI*2-Math.PI; chooseCurrentByAngle(); renderNames(); scheduleNextAngle(); },delay);
-      }
+      var delay=15000+Math.random()*30000;
+      tickTimer=setTimeout(function(){ smokeAngle=Math.random()*Math.PI*2-Math.PI; chooseCurrentByAngle(); renderNames(); scheduleNextAngle(); },delay);
     }
 
     function onToggle(ev){
@@ -237,32 +256,37 @@
       eveningAward.textContent='🏆 Самая красивая девушка вечера: —'; hideTooltip();
     }
 
-    function bindControls(){
-      var lastToggle=0, lastReset=0;
-      function safeToggle(ev){
-        try{ if(ev && ev.preventDefault) ev.preventDefault(); }catch(e){}
-        if(Date.now() - lastToggle < 300) return;
-        lastToggle = Date.now();
-        if(ev && ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-        onToggle(ev);
-      }
-      function safeReset(ev){
-        try{ if(ev && ev.preventDefault) ev.preventDefault(); }catch(e){}
-        if(Date.now() - lastReset < 300) return;
-        lastReset = Date.now();
-        if(ev && ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-        onReset(ev);
-      }
-      if(window.PointerEvent){
-        toggleBtn.addEventListener('pointerup', safeToggle, true);
-        resetBtn.addEventListener('pointerup', safeReset, true);
-      } else {
-        toggleBtn.addEventListener('click', safeToggle, true);
-        toggleBtn.addEventListener('touchend', safeToggle, true);
-        resetBtn.addEventListener('click', safeReset, true);
-        resetBtn.addEventListener('touchend', safeReset, true);
-      }
-    }
+    
+function bindControls(){
+  // Single capture-phase handler to prevent duplicate calls from touch/click/pointer
+  var lastToggle=0, lastReset=0;
+  function safeToggle(ev){
+    try{ if(ev && ev.preventDefault) ev.preventDefault(); }catch(e){}
+    if(Date.now() - lastToggle < 300) return;
+    lastToggle = Date.now();
+    // stop other listeners from running
+    if(ev && ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+    onToggle(ev);
+  }
+  function safeReset(ev){
+    try{ if(ev && ev.preventDefault) ev.preventDefault(); }catch(e){}
+    if(Date.now() - lastReset < 300) return;
+    lastReset = Date.now();
+    if(ev && ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+    onReset(ev);
+  }
+  // prefer pointer events (covers mouse & touch); attach in capture phase to preempt others
+  if(window.PointerEvent){
+    toggleBtn.addEventListener('pointerup', safeToggle, true);
+    resetBtn.addEventListener('pointerup', safeReset, true);
+  } else {
+    toggleBtn.addEventListener('click', safeToggle, true);
+    toggleBtn.addEventListener('touchend', safeToggle, true);
+    resetBtn.addEventListener('click', safeReset, true);
+    resetBtn.addEventListener('touchend', safeReset, true);
+  }
+}
+
 
     function showTooltipForElement(el,name){ updateTooltipForElement(el,name); tooltip.classList.add('show'); tooltip.setAttribute('aria-hidden','false'); }
     function updateTooltipForElement(el,name){
@@ -288,11 +312,13 @@
         g.addColorStop(1,'rgba(220,220,220,0)');
         ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
       }
+      // filter dead
       var alive=[]; for(i=0;i<particles.length;i++){ if(particles[i].life>0) alive.push(particles[i]); } particles=alive;
       if(running&&current&&Math.random()<0.7) spawnParticle();
       window.requestAnimationFrame(animateSmoke);
     }
 
+    // Robust init for any mobile/legacy browsers
     function robustInit(){
       var tries=0;
       var check=function(){
@@ -313,9 +339,11 @@
       check();
     }
 
+    // Input handlers
     namesInput.addEventListener('input', function(){ updateNames(); hideTooltip(); }, false);
     namesInput.addEventListener('change', function(){ updateNames(); hideTooltip(); }, false);
 
+    // Start
     if(document.readyState === 'loading'){
       document.addEventListener('DOMContentLoaded', robustInit, false);
     }else{
